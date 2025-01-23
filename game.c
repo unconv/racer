@@ -21,7 +21,6 @@ int main() {
     Texture2D soil_texture = LoadTextureFromImage(soil_image);
 
     Image car_image = LoadImage("craftpix-889156-free-racing-game-kit/PNG/Car_1_Main_Positions/Car_1_01.png");
-    ImageRotateCW(&car_image);
     Texture2D car_texture = LoadTextureFromImage(car_image);
     Rectangle car_texture_rec = {
         .x = 0,
@@ -31,13 +30,13 @@ int main() {
     };
 
     int car_width = 80;
-    int car_height = 150;
+    int car_length = 150;
     float car_x = width/2-car_width/2;
-    float car_y = height/2-car_height/2;
+    float car_y = height/2-car_length/2;
     float car_speed = 0;
     float car_max_speed = 7;
     int car_direction = -1;
-    float car_angle = -90;
+    float car_angle = 0;
     float car_speedup = 10;
     float car_slowdown = 0.97;
 
@@ -108,12 +107,12 @@ int main() {
         drift_angle = (car_angle + drift_angle * drift_bias) / (1 + drift_bias);
 
         // Move car forward
-        float radians = PI * car_angle / 180;
+        float radians = PI * (car_angle - 90) / 180;
         car_x += car_speed * cosf( radians );
         car_y += car_speed * sinf( radians );
 
         // Move car to direction of drift
-        radians = PI * drift_angle / 180;
+        radians = PI * (drift_angle - 90) / 180;
         car_x += car_speed * cosf( radians );
         car_y += car_speed * sinf( radians );
 
@@ -152,12 +151,12 @@ int main() {
         Rectangle car_rec = {
             .x = car_x,
             .y = car_y,
-            .width = car_height,
-            .height = car_width,
+            .width = car_width,
+            .height = car_length,
         };
         Vector2 car_origin = {
-            .x = car_height/2,
-            .y = car_width/2,
+            .x = car_width/2,
+            .y = car_length/2,
         };
         DrawTexturePro(car_texture, car_texture_rec, car_rec, car_origin, car_angle, WHITE);
 
