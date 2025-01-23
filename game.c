@@ -5,7 +5,6 @@
 
 #define BACKGROUND_COLOR (Color){186, 149, 127}
 #define CAR_COLOR BLACK
-#define ROTATION_SPEED 20
 #define CAMERA_FOLLOW_THRESH 400
 
 int main() {
@@ -36,11 +35,19 @@ int main() {
     float car_x = width/2-car_width/2;
     float car_y = height/2-car_height/2;
     float car_speed = 0;
-    float car_max_speed = 10;
+    float car_max_speed = 7;
     int car_direction = -1;
-    float car_rotation = -90;
+    float car_angle = -90;
     float car_speedup = 10;
-    float car_slowdown = 20;
+    float car_slowdown = 0.97;
+
+    float drift_angle = car_angle;
+    float drift_bias = 15;
+
+    float steering = 0;
+    float steering_speed = 2;
+    float max_steering = 4;
+    float steer_back_speed = 0.04;
 
     Camera2D camera = {
         .offset = (Vector2){0, 0},
@@ -79,30 +86,36 @@ int main() {
                 car_speed = car_max_speed;
             }
         } else {
-            car_speed += car_slowdown * dt * car_direction;
-            if( car_direction == -1 && car_speed < 0 ) {
-                car_speed = 0;
-            } else if( car_direction == 1 && car_speed > 0 ) {
-                car_speed = 0;
-            }
+            car_speed = car_slowdown * car_speed;
         }
 
         if( IsKeyDown( KEY_LEFT ) ) {
-            car_rotation -= ROTATION_SPEED * dt * abs( car_speed );
+            steering -= steering_speed * dt * abs( car_speed );
+            if( steering < -max_steering ) {
+                steering = -max_steering;
+            }
         } else if( IsKeyDown( KEY_RIGHT ) ) {
-            car_rotation += ROTATION_SPEED * dt * abs( car_speed );
+            steering += steering_speed * dt * abs( car_speed );
+            if( steering > max_steering ) {
+                steering = max_steering;
+            }
         }
 
-        if( car_rotation >= 360 ) {
-            car_rotation = 0;
-        }
+        steering = steering * (1 - steer_back_speed );
 
-        float radians = PI * car_rotation / 180;
-        float x_move = car_speed * cosf( radians );
-        float y_move = car_speed * sinf( radians );
+        car_angle += steering;
 
-        car_x += x_move;
-        car_y += y_move;
+        drift_angle = (car_angle + drift_angle * drift_bias) / (1 + drift_bias);
+
+        // Move car forward
+        float radians = PI * car_angle / 180;
+        car_x += car_speed * cosf( radians );
+        car_y += car_speed * sinf( radians );
+
+        // Move car to direction of drift
+        radians = PI * drift_angle / 180;
+        car_x += car_speed * cosf( radians );
+        car_y += car_speed * sinf( radians );
 
         if( car_x + camera.offset.x < CAMERA_FOLLOW_THRESH ) {
             camera.offset.x = -car_x + CAMERA_FOLLOW_THRESH;
@@ -146,7 +159,7 @@ int main() {
             .x = car_height/2,
             .y = car_width/2,
         };
-        DrawTexturePro(car_texture, car_texture_rec, car_rec, car_origin, car_rotation, WHITE);
+        DrawTexturePro(car_texture, car_texture_rec, car_rec, car_origin, car_angle, WHITE);
 
         EndDrawing();
     }
