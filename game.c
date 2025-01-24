@@ -6,6 +6,16 @@
 #define BACKGROUND_COLOR (Color){186, 149, 127}
 #define CAR_COLOR BLACK
 #define CAMERA_FOLLOW_THRESH 400
+#define MAX_SKIDMARKS 500
+#define SKIDMARK_TIME 3
+
+typedef struct {
+    float left_tire_x;
+    float left_tire_y;
+    float right_tire_x;
+    float right_tire_y;
+    double time;
+} Skidmark;
 
 int main() {
     int width = 1300;
@@ -47,6 +57,9 @@ int main() {
     float steering_speed = 2;
     float max_steering = 4;
     float steer_back_speed = 0.04;
+
+    Skidmark skidmarks[MAX_SKIDMARKS];
+    int skidmark_count = 0;
 
     Camera2D camera = {
         .offset = (Vector2){0, 0},
@@ -106,6 +119,9 @@ int main() {
 
         drift_angle = (car_angle + drift_angle * drift_bias) / (1 + drift_bias);
 
+        float drift_diff = drift_angle - car_angle;
+        bool drifting = abs( drift_diff ) > 30;
+
         // Move car forward
         float radians = PI * (car_angle - 90) / 180;
         car_x += car_speed * cosf( radians );
@@ -158,6 +174,42 @@ int main() {
             .x = car_width/2,
             .y = car_length/2,
         };
+
+        if( drifting ) {
+            radians = PI * (car_angle - 240) / 180;
+            float left_tire_x = car_x;
+            left_tire_x += car_length / 2.6 * cosf( radians );
+            float left_tire_y = car_y;
+            left_tire_y += car_length / 2.6 * sinf( radians );
+
+            radians = PI * (car_angle - 300) / 180;
+            float right_tire_x = car_x;
+            right_tire_x += car_length / 2.6 * cosf( radians );
+            float right_tire_y = car_y;
+            right_tire_y += car_length / 2.6 * sinf( radians );
+
+            skidmarks[skidmark_count % MAX_SKIDMARKS] = (Skidmark){
+                left_tire_x,
+                left_tire_y,
+                right_tire_x,
+                right_tire_y,
+                GetTime(),
+            };
+            skidmark_count++;
+        }
+
+        for( int i = 0; i < skidmark_count && i < MAX_SKIDMARKS; i++ ) {
+            Skidmark skidmark = skidmarks[i];
+
+            double current_time = GetTime();
+            if( current_time - skidmark.time > SKIDMARK_TIME ) {
+                continue;
+            }
+
+            DrawCircle( skidmark.left_tire_x, skidmark.left_tire_y, 6, BLACK );
+            DrawCircle( skidmark.right_tire_x, skidmark.right_tire_y, 6, BLACK );
+        }
+
         DrawTexturePro(car_texture, car_texture_rec, car_rec, car_origin, car_angle, WHITE);
 
         EndDrawing();
